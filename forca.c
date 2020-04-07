@@ -1,20 +1,66 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <stdlib.h>
+#include "forca.h"
 
-char secretword[20];
+char secretword[WORD_LENGTH];
 char kicks[26];
 int attempts = 0;
 
+int kickfails()
+{
+    int errors = 0;
+
+    for (int i = 0; i < attempts; i++)
+    {
+        int exist = 0;
+
+        for (unsigned int j = 0; j < strlen(secretword); j++)
+        {
+            if (kicks[i] == secretword[j])
+            {
+                exist = 1;
+                break;
+            }
+        }
+        if (!exist)
+        {
+            errors++;
+        }
+    }
+
+    return (errors);
+}
+
+int hanged()
+{
+    return kickfails() >= 5;
+}
+
+int winplayer()
+{
+    for (unsigned int i = 0; i < strlen(secretword); i++)
+    {
+        if (!wordkicked(secretword[i]))
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void startgame()
 {
+    printf("\n/****************/\n");
+    printf("/ Jogo da Forca */\n");
     printf("/****************/\n");
-    printf("/ Jogo de Forca */\n");
-    printf("/****************/\n\n");
 }
 
 void kick()
 {
     char usertry;
+    printf("Chute uma letra: \n");
     scanf(" %c", &usertry);
 
     kicks[attempts] = usertry;
@@ -39,12 +85,23 @@ int wordkicked(char letter)
 void drawforca()
 {
 
+    int errors = kickfails();
+
+    printf("  _______       \n");
+    printf(" |/      |      \n");
+    printf(" |      %c%c%c  \n", (errors>=1?'(':' '), (errors>=1?'_':' '), (errors>=1?')':' '));
+    printf(" |      %c%c%c  \n", (errors>=3?'\\':' '), (errors>=2?'|':' '), (errors>=3?'/': ' '));
+    printf(" |       %c     \n", (errors>=2?'|':' '));
+    printf(" |      %c %c   \n", (errors>=4?'/':' '), (errors>=4?'\\':' '));
+    printf(" |              \n");
+    printf("_|___           \n");
+    printf("\n\n");
+
+    printf("Voce ja chutou %d vezes\n", attempts);
+
     for (unsigned int i = 0; i < strlen(secretword); i++)
     {
-
-        int found = wordkicked(secretword[i]);
-
-        if (found)
+        if (wordkicked(secretword[i]))
         {
             printf("%c ", secretword[i]);
         }
@@ -58,21 +115,112 @@ void drawforca()
 
 void choosewordsecret()
 {
-    sprintf(secretword, "MELANCIA");
+    FILE* f;
+
+    f = fopen("words.txt","r");
+    if(f == 0)
+    {
+        printf("::ERROR BD::\n\n");
+        exit(1);
+    }
+
+    int qtdwords;
+    fscanf(f,"%d",&qtdwords);
+
+    srand(time(0));
+    int randon = rand() % qtdwords;
+
+    for (int i = 0; i < randon; i++)
+    {
+        fscanf(f,"%s",secretword);
+    }
+
+    fclose(f);
+}
+
+void addwordsecret() {
+
+    char yes;
+
+    printf("Deseja adicionar uma nova palavra no jogo? (S/N)");
+    scanf("%c", &yes);
+
+    if (yes == 'S' || yes == 's')
+    {
+        char newword[WORD_LENGTH];
+        printf("Digite a nova palavra: ");
+        scanf("%s", newword);
+
+        FILE* f;
+
+        f = fopen("words.txt", "r+");
+        if(f == 0)
+        {
+            printf("::ERROR BD::\n\n");
+            exit(1);
+        }
+
+        int qtd;
+        fscanf(f, "%d", &qtd);
+        qtd++;
+
+        fseek(f, 0, SEEK_SET);
+        fprintf(f, "%d", qtd);
+
+        fseek(f, 0, SEEK_END);
+        fprintf(f, "\n%s", newword);
+
+        fclose(f);
+    }
 }
 
 int main()
 {
-    int right = 0;
-    int hanged = 0;
-
-    choosewordsecret();
     startgame();
+    choosewordsecret();
 
-    while (!right && !hanged)
+    while (!winplayer() && !hanged())
     {
-
         drawforca();
         kick();
     }
+
+    if (winplayer()) {
+
+    printf("\nParabéns, você ganhou!\n\n");
+
+    printf("       ___________      \n");
+    printf("      '._==_==_=_.'     \n");
+    printf("      .-\\:      /-.    \n");
+    printf("     | (|:.     |) |    \n");
+    printf("      '-|:.     |-'     \n");
+    printf("        \\::.    /      \n");
+    printf("         '::. .'        \n");
+    printf("           ) (          \n");
+    printf("         _.' '._        \n");
+    printf("        '-------'       \n\n");
+
+    } else {
+    printf("\nPuxa, você foi enforcado!\n");
+    printf("A palavra era **%s**\n\n", secretword);
+
+    printf("    _______________         \n");
+    printf("   /               \\       \n");
+    printf("  /                 \\      \n");
+    printf("//                   \\/\\  \n");
+    printf("\\|   XXXX     XXXX   | /   \n");
+    printf(" |   XXXX     XXXX   |/     \n");
+    printf(" |   XXX       XXX   |      \n");
+    printf(" |                   |      \n");
+    printf(" \\__      XXX      __/     \n");
+    printf("   |\\     XXX     /|       \n");
+    printf("   | |           | |        \n");
+    printf("   | I I I I I I I |        \n");
+    printf("   |  I I I I I I  |        \n");
+    printf("   \\_             _/       \n");
+    printf("     \\_         _/         \n");
+    printf("       \\_______/           \n");
+    }
+
+    addwordsecret();
 }
